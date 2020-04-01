@@ -1,0 +1,194 @@
+	var bookmark = new Array();
+	var bookmarkstr = "";
+	
+	function BookMarkSave() {
+		bookmarkstr = "";
+		for (var i=0; i<bookmark.length; i++) {
+			if (i == 0) {
+				bookmarkstr += bookmark[i];
+			} else {
+				bookmarkstr += ("|" + bookmark[i]);
+			}
+		}
+		if (typeof(Storage) !== "undefined") {
+			localStorage.setItem("bookmark", bookmarkstr);
+		} else {
+			$.cookie("bookmark", bookmarkstr, {expires:365,path:'/'});
+		}
+	}
+	function BookMarkAdd(idx) {
+		if (typeof(idx) == "number") 
+			idx = idx.toString();
+		
+			$.ajax({
+				async:false,
+				type:"GET",
+				url:"/show/bookmark_add.php?ani_id=" + idx,
+				'dataType' : 'json',
+				success:function(results) {
+					if(results.error){
+						alert(results.message);
+						return;
+					}
+								
+					BookMarkLoad();
+					$("#bmbtn_"+idx).attr("src", "/img/bookmark_new_on.png");
+				},
+				error:function() {
+					alert("북마크를 불러올 수 없습니다.");
+				}
+			});
+		
+	}
+	
+	function BookMarkDel(idx) {
+			$.ajax({
+				async:false,
+				type:"GET",
+				url:"/show/bookmark_delete.php?ani_id=" + idx,
+				'dataType' : 'json',
+				success:function(results) {
+					if(results.error){
+						alert(results.message);
+						return;
+					}
+								
+					BookMarkLoad();
+					$("#bmbtn_"+idx).attr("src", "/img/bookmark_new_off_2.png");
+				},
+				error:function() {
+					alert("북마크를 불러올 수 없습니다.");
+				}
+			});
+	}
+	
+	function BookMarkBtn(idx, e) {
+		if ($("#bmbtn_"+idx).attr("src").indexOf("bookmark_new_off_2.png") != -1) {
+			BookMarkAdd(idx);
+			BookMarkBox(true);
+		} else {
+			BookMarkDel(idx);
+		}
+		e.stopPropagation();
+	}
+	function BookMarkBox(m) {
+		if (m == true) {
+			bookmark[0] = "t";
+			$("#bookmarkbox-o").css("display", "none");
+			$("#bookmarkbox-c").css("display", "block");
+			$("#bookmarkbox").css("display", "block");
+		} else {
+			bookmark[0] = "f";
+			if (bookmark.length > 1) {
+				$("#bookmarkbox-o").css("display", "block");
+				$("#bookmarkbox-c").css("display", "none");
+				$("#bookmarkbox").css("display", "none");
+			} else {
+				$("#bookmarkbox-o").css("display", "none");
+				$("#bookmarkbox-c").css("display", "none");
+				$("#bookmarkbox").css("display", "none");
+			}
+		}
+		BookMarkSave();
+	}
+	function BookMarkLoad() {
+		// 북마크 정보 불러오기
+		var bookmarkjson = new Array();
+		$.ajax({
+			async:false,
+			type:"GET",
+			dataType : 'json',
+			url:"/show/bookmark.php",
+			success:function(results) {
+				bookmarkjson = results.bookmarkjson;
+			},
+			error:function() {
+				//alert("북마크를 불러올 수 없습니다.\r\n잠시 후 다시 시도해주세요!");
+			}
+		});
+		if (bookmarkjson == null) return;
+		// 북마크 뿌려주기
+		var tstr = "";
+		tstr += '<table id="bookmarktable" width="100%" cellpadding="0" cellspacing="0">';
+		for (var i=0; i<bookmarkjson.length; i++) {
+			// 북마크 아이콘
+			$("#bmbtn_"+bookmarkjson[i]['ani_id']).attr("src", "/img/bookmark_new_on.png");
+			tstr +=
+			'<tr height="70">'+
+				'<td onclick="location.href=\'/ani_list/' + bookmarkjson[i]['ani_id'] + '.html\';" width="70" align="center" valign="middle">'+
+					'<div style="width:60px;height:60px;position:relative;">'+
+					'<img class="bookmarkthumb" src="' + bookmarkjson[i]['img'] + '" width="60" height="60" style="border:1px solid #EEEEEE;">'+
+					(bookmarkjson[i]['is_new']==1?'<div class="ani_upload" style="left:0">UP</div>':'')+
+					'</div>'+
+				'</td>'+
+				'<td onclick="location.href=\'/ani_list/' + bookmarkjson[i]['ani_id'] + '.html\';" align="left" valign="middle">' + bookmarkjson[i]['subject'] + '</td>'+
+				'<td onclick="BookMarkDel(' + bookmarkjson[i]['ani_id'] + ');" width="20" align="center" valign="middle">x</td>'+
+			'</tr>';
+		}
+		tstr += '</table>';
+		$("#bookmarkbox").html(tstr);
+		// 페이드 인 효과
+		$(".bookmarkthumb").load(function() {
+			$(this).fadeIn(300);
+		}).each(function() {
+			if (this.complete) $(this).load();
+		});
+	}
+	function back_player(v_str){
+		setCookie("back_player",v_str, 365);
+		alert('적용이 완료되었습니다.['+v_str+']');
+		adr = location.href;
+		location.href= adr + "?player=yes"
+	}
+	function cu_player(){
+		setCookie("back_player","no", 365);
+		alert('적용이 완료되었습니다.[신규 플레이어]');
+		adr = location.href;
+		location.href= adr + "?player=no"
+	}
+	function setCookie(c_name,value,exdays){
+		var exdate=new Date();
+		exdate.setDate(exdate.getDate() + exdays);
+		var c_value=escape(value) + ((exdays==null) ? "" : "; expires="+exdate.toUTCString());
+		document.cookie=c_name + "=" + c_value;
+	}
+	
+	$(function(){
+			$('.ani_info_list .tab #episode').click(function(event){
+				$('#episode_list').css("display","block");
+				$('#ani_review').css("display","none");
+				$(this).removeClass('current').addClass('current');
+				$('.ani_info_list .tab #review').removeClass('current');
+			});			
+			$('.ani_info_list .tab #review').click(function(event){
+				$('#episode_list').css("display","none");
+				$('#ani_review').css("display","block");
+				$(this).removeClass('current').addClass('current');
+				$('.ani_info_list .tab #episode').removeClass('current');
+			});
+		});
+
+	$(document).ready(
+	function() {
+		$('.header_right > .profile').click(function(event){
+			$('.profile_menu').css("display","block");
+		});
+		$(window).click(function(e){
+				if (!e.target.matches('.header_right > .profile,.header_right > .profile *')) {
+					$('.profile_menu').css("display","none");
+				}
+			}
+		);
+		
+
+		BookMarkBox(false);
+		BookMarkLoad();
+	});
+	
+	$(function(){
+		$.cookie("login", $.cookie("login"), {expires:14,path:'/'});
+		$('.form_file input[type=file]').change(function(e){
+			var form = $(this).closest("form");
+			form.submit();
+		});
+	});
